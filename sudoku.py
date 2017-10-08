@@ -134,7 +134,7 @@ def sudokuLogicalSolve(allvec, ps):
         for i, v in enumerate(allvec):
             for j in v:
                 elem = ps[j]
-                if elem != all:                 # No point examining pure wildcard entries
+                if len(elem) <=3:                 # Check rings of up to specified length
                     exactMatches = set()
                     subsetMatches = set()
                     for k in v:
@@ -176,7 +176,7 @@ def sudokuCheck(allvec, ps, all):
                 return False, errStr
         return True, errStr
     except:
-        print('Checking function crashed while evaluating this')
+        print('sudokuCheck function encountered exception:')
         sudokuPrint(ps)
         exit(1)
 
@@ -189,7 +189,7 @@ def sudokuRecursiveSolve(allvec, ps, all, lvl, starti):
             unknowns += 1                           # still got possibilities to resolve - try each in turn
             for j in elem:
                 if debug:
-                    print('Recursion level', lvl, ': try fixing element', fromLinear(i), 'to', j, ':', end='')
+                    print('Recursion level', lvl, ': try fixing element', fromLinear(i), 'to', j, end='', flush=True)
                 ps[i] = {j}                         # Force element value
                 ok, e = sudokuCheck(allvec, ps, all)
                 if not ok:
@@ -198,8 +198,7 @@ def sudokuRecursiveSolve(allvec, ps, all, lvl, starti):
                     continue                        # try next j
                 if debug:
                     print()
-                    sudokuPrint(ps)
-                    print('Applying logical reduction to this candidate, giving:')
+                    print('Applying logical reduction to this candidate')
                 ps3 = sudokuLogicalSolve(allvec, copy(ps))
                 ok, e = sudokuCheck(allvec, ps3, all)
                 if not ok:
@@ -207,17 +206,17 @@ def sudokuRecursiveSolve(allvec, ps, all, lvl, starti):
                         print(e)
                     continue                        # try next j
                 # Logically OK so far. May still have unknowns. Can start search for possibilities in the i+1th element
-                ps4 = sudokuRecursiveSolve(allvec, ps3, all, lvl+1, i+1)
-                if ps4:
-                    ok, e = sudokuCheck(allvec, ps4, all)
+                ps3 = sudokuRecursiveSolve(allvec, ps3, all, lvl+1, i+1)
+                if ps3:
+                    ok, e = sudokuCheck(allvec, ps3, all)
                     if ok:
-                        return ps4                  # We've got it
+                        return ps3                  # We've got it
                     else:
                         if debug:
                             print(e)
                         continue                    # try next j
                 else:
-                    continue                        # try next k
+                    continue                        # try next j
 
     if unknowns==0:
         return ps
@@ -228,7 +227,7 @@ def sudokuRecursiveSolve(allvec, ps, all, lvl, starti):
 # Main code
 # -----------------------------------------------------------------------------------------
 
-debug = True
+debug = False
 N = len(s)                                  # size of the puzzle
 sqrtN = int(sqrt(N))
 if (sqrtN **2) != N:
