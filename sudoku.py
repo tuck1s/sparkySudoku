@@ -35,6 +35,7 @@ s=[ [0,0,0, 0,0,0, 0,0,0],
     [0,0,0, 0,0,0, 0,0,0],
     [0,0,0, 0,0,0, 0,0,0]]
 
+'''
 #Telegraph - Diabolical level no. 4164, 22 Sep 2017
 s=[ [6,0,4, 0,9,0, 7,0,3],
     [0,0,3, 0,0,0, 0,6,0],
@@ -47,6 +48,7 @@ s=[ [6,0,4, 0,9,0, 7,0,3],
     [0,7,0, 0,0,0, 0,0,0],
     [0,4,0, 0,0,0, 8,0,0],
     [9,0,8, 0,6,0, 4,0,5]]
+
 '''
 # "the most difficult puzzle" from academic paper https://www.dcc.fc.up.pt/~acm/sudoku.pdf
 s=[ [9,0,0, 8,0,0, 0,0,0],
@@ -60,7 +62,7 @@ s=[ [9,0,0, 8,0,0, 0,0,0],
     [7,0,8, 6,0,0, 0,0,0],
     [0,0,0, 0,3,0, 1,0,0],
     [4,0,0, 0,0,0, 2,0,0]]
-
+'''
 # Functions to map 2D 'human' representation onto linear vector representation, which is easier for machine solving
 def toLinear(r,c):
     return r*N + c
@@ -132,7 +134,7 @@ def sudokuLogicalSolve(allvec, ps):
         for i, v in enumerate(allvec):
             for j in v:
                 elem = ps[j]
-                if elem != all:  # No point examining pure wildcard entries
+                if elem != all:                 # No point examining pure wildcard entries
                     exactMatches = set()
                     subsetMatches = set()
                     for k in v:
@@ -144,12 +146,13 @@ def sudokuLogicalSolve(allvec, ps):
                     if len(elem) == len(exactMatches):
                         for l in subsetMatches:
                             ps[l] = ps[l] - elem
-                            hits += 1  # we found one this time
+                            hits += 1           # we found one this time
     return ps
 
 # check a sudoku is still self-consistent, i.e. no duplicate singleton values, and every value is still possible at least once
 def sudokuCheck(allvec, ps, all):
     try:
+        errStr = ''
         for i, v in enumerate(allvec):
             singletonValues = set()
             collectedValues = set()
@@ -171,48 +174,50 @@ def sudokuCheck(allvec, ps, all):
                 f3 = fromLinear(j)
                 errStr = 'In row/col/cell ' + str(f1) + ' .. ' + str(f2) + ' : all values not possible any more ' + str(collectedValues)
                 return False, errStr
-        return True, ''
+        return True, errStr
     except:
         print('Checking function crashed while evaluating this')
         sudokuPrint(ps)
         exit(1)
 
 # Recursively try resolving the possibilities. If puzzle becomes non-consistent then we have to backtrack
-def sudokuRecursiveSolve(allvec, ps, all, lvl):
-    ps2 = deepcopy(ps)
+def sudokuRecursiveSolve(allvec, ps, all, lvl, starti):
     unknowns = 0
-    for i, elem in enumerate(ps2):
+    for i in range(starti, len(ps)):
+        elem = ps[i]
         if len(elem) > 1:
-            # still got possibilities to resolve - try each in turn
-            unknowns += 1
+            unknowns += 1                           # still got possibilities to resolve - try each in turn
             for j in elem:
-                #print('Recursion level', lvl, ': try fixing element', fromLinear(i), 'to', j, ':', end='')
-                ps2[i] = {j}
-                ok, e = sudokuCheck(allvec, ps2, all)
+                if debug:
+                    print('Recursion level', lvl, ': try fixing element', fromLinear(i), 'to', j, ':', end='')
+                ps[i] = {j}                         # Force element value
+                ok, e = sudokuCheck(allvec, ps, all)
                 if not ok:
-                    #print(e)
-                    continue
-                #print()
-                ps3 = deepcopy(ps2)
-                #sudokuPrint(ps3)
-                #print('Applying logical reduction to this candidate, giving:')
-                ps3 = sudokuLogicalSolve(allvec, ps3)
+                    if debug:
+                        print(e)
+                    continue                        # try next j
+                if debug:
+                    print()
+                    sudokuPrint(ps)
+                    print('Applying logical reduction to this candidate, giving:')
+                ps3 = sudokuLogicalSolve(allvec, deepcopy(ps))
                 ok, e = sudokuCheck(allvec, ps3, all)
                 if not ok:
-                    #print(e)
-                    continue
-                # Logically OK so far. May still have unknowns
-                #tPoss = sudokuPrint(ps3)
-                ps4 = sudokuRecursiveSolve(allvec, ps3, all, lvl+1)
+                    if debug:
+                        print(e)
+                    continue                        # try next j
+                # Logically OK so far. May still have unknowns. Can start search for possibilities in the i+1th element
+                ps4 = sudokuRecursiveSolve(allvec, ps3, all, lvl+1, i+1)
                 if ps4:
-                    ok,e = sudokuCheck(allvec, ps4, all)
+                    ok, e = sudokuCheck(allvec, ps4, all)
                     if ok:
                         return ps4                  # We've got it
                     else:
-                        #print(e)
-                        continue                    # Discard this recursive solution; keep looking
+                        if debug:
+                            print(e)
+                        continue                    # try next j
                 else:
-                    continue                        # Discard this recursive solution; keep looking
+                    continue                        # try next k
 
     if unknowns==0:
         return ps
@@ -222,6 +227,8 @@ def sudokuRecursiveSolve(allvec, ps, all, lvl):
 # -----------------------------------------------------------------------------------------
 # Main code
 # -----------------------------------------------------------------------------------------
+
+debug = False
 N = len(s)                                  # size of the puzzle
 sqrtN = int(sqrt(N))
 if (sqrtN **2) != N:
@@ -261,10 +268,7 @@ allvec = rowvec + colvec + cellvec
 ps = sudokuLogicalSolve(allvec, ps)             # Get rid of as many possibilities as we can logically
 ok, e = sudokuCheck(allvec, ps, all)
 if ok:
-    print('Logical reduction gives')
-    sudokuPrint(ps)
-    ps = sudokuRecursiveSolve(allvec, ps, all, 0)
-    print()
+    ps = sudokuRecursiveSolve(allvec, ps, all, 0, 0)
     print()
     sudokuPrint(ps)
 else:
