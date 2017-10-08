@@ -3,7 +3,7 @@
 #
 from __future__ import print_function
 from math import sqrt
-from copy import deepcopy
+from copy import copy, deepcopy
 import sys
 
 # Zero means 'not known' in input data, which must be square
@@ -200,7 +200,7 @@ def sudokuRecursiveSolve(allvec, ps, all, lvl, starti):
                     print()
                     sudokuPrint(ps)
                     print('Applying logical reduction to this candidate, giving:')
-                ps3 = sudokuLogicalSolve(allvec, deepcopy(ps))
+                ps3 = sudokuLogicalSolve(allvec, copy(ps))
                 ok, e = sudokuCheck(allvec, ps3, all)
                 if not ok:
                     if debug:
@@ -228,7 +228,7 @@ def sudokuRecursiveSolve(allvec, ps, all, lvl, starti):
 # Main code
 # -----------------------------------------------------------------------------------------
 
-debug = False
+debug = True
 N = len(s)                                  # size of the puzzle
 sqrtN = int(sqrt(N))
 if (sqrtN **2) != N:
